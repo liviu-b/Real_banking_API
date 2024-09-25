@@ -1,40 +1,56 @@
-// controllers/accountController.js
-const Account = require('../models/accountModel');
+const User = require('../models/userModel');
+const generateToken = require('../utils/generateToken');
 
-// @desc    Get user's accounts
-// @route   GET /api/accounts
-// @access  Private
-const getAccounts = async (req, res) => {
-  try {
-    const accounts = await Account.find({ user: req.user.id });
-    res.json(accounts);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+// @desc    Register a new user
+// @route   POST /api/auth/register
+// @access  Public
+const registerUser = async (req, res) => {
+  const { name, email, password } = req.body;
 
-// @desc    Create new account for user
-// @route   POST /api/accounts
-// @access  Private
-const createAccount = async (req, res) => {
-  const { accountType } = req.body;
-
-  // Ensure valid account type
-  if (!['savings', 'checking'].includes(accountType)) {
-    return res.status(400).json({ message: 'Invalid account type' });
+  // Check if the user already exists
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    return res.status(400).json({ message: 'User already exists' });
   }
 
-  try {
-    const account = new Account({
-      user: req.user.id,
-      accountType,
+  // Create new user
+  const user = await User.create({
+    name,
+    email,
+    password,
+  });
+
+  // Return user data and token
+  if (user) {
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      token: generateToken(user._id),
     });
-
-    await account.save();
-    res.status(201).json(account);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+  } else {
+    res.status(400).json({ message: 'Invalid user data' });
   }
 };
 
-module.exports = { getAccounts, createAccount };
+// @desc    Authenticate user & get token
+// @route   POST /api/auth/login
+// @access  Public
+const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (user && (await user.matchPassword(password))) {
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      token: generateToken(user._id),
+    });
+  } else {
+    res.status(401).json({ message: 'Invalid email or password' });
+  }
+};
+
+module.exports = { registerUser, loginUser };
