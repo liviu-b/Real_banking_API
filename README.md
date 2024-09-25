@@ -28,17 +28,24 @@ Make sure you have the following installed:
 - [Postman](https://www.postman.com/) or another API testing tool
 
 
-API Endpoints
-Authentication
+### API Endpoints
+Authentication:
+
 Register a user: POST /api/auth/register
 Login a user: POST /api/auth/login
-Account Management
+
+Account Management:
+
 Get accounts: GET /api/accounts
 Create an account: POST /api/accounts
-Transactions
+
+Transactions:
+
 Create a transaction: POST /api/transactions
 Get transactions for an account: GET /api/transactions?accountId={accountId}
-Testing
+
+Testing:
+
 You can test the API endpoints using Postman or any other API testing tool. Make sure to include the JWT token in the Authorization header as a Bearer Token for protected routes.
 
 License
