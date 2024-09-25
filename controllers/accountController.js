@@ -28,7 +28,7 @@ const createAccount = async (req, res) => {
   }
 };
 
-module.exports = {
+module.exports = { 
   getAccounts,
   createAccount,
 };
