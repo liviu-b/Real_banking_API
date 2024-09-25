@@ -1,56 +1,29 @@
-const User = require('../models/userModel');
-const generateToken = require('../utils/generateToken');
+const Account = require('../models/accountModel');
 
-// @desc    Register a new user
-// @route   POST /api/auth/register
-// @access  Public
-const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+// Get all accounts for a user
+const getAccounts = async (req, res) => {
+  const accounts = await Account.find({ user: req.user._id });
+  res.json(accounts);
+};
 
-  // Check if the user already exists
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    return res.status(400).json({ message: 'User already exists' });
-  }
+// Create a new account
+const createAccount = async (req, res) => {
+  const { accountType, initialDeposit } = req.body;
 
-  // Create new user
-  const user = await User.create({
-    name,
-    email,
-    password,
+  const account = await Account.create({
+    user: req.user._id,
+    balance: initialDeposit || 0,
+    accountType,
   });
 
-  // Return user data and token
-  if (user) {
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      token: generateToken(user._id),
-    });
+  if (account) {
+    res.status(201).json(account);
   } else {
-    res.status(400).json({ message: 'Invalid user data' });
+    res.status(400).json({ message: 'Invalid account data' });
   }
 };
 
-// @desc    Authenticate user & get token
-// @route   POST /api/auth/login
-// @access  Public
-const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await User.findOne({ email });
-
-  if (user && (await user.matchPassword(password))) {
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      token: generateToken(user._id),
-    });
-  } else {
-    res.status(401).json({ message: 'Invalid email or password' });
-  }
+module.exports = {
+  getAccounts,
+  createAccount,
 };
-
-module.exports = { registerUser, loginUser };

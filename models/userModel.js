@@ -17,9 +17,10 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
+    enum: ['customer', 'admin'],
     default: 'customer',
   },
-});
+}, { timestamps: true });
 
 // Password hashing before saving
 userSchema.pre('save', async function (next) {
@@ -30,7 +31,6 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Match user-entered password with hashed password in the database
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

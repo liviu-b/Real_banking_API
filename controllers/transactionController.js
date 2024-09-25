@@ -1,64 +1,42 @@
-// controllers/transactionController.js
 const Transaction = require('../models/transactionModel');
 const Account = require('../models/accountModel');
 
-// @desc    Get all transactions for user
-// @route   GET /api/transactions
-// @access  Private
-const getTransactions = async (req, res) => {
-  try {
-    const transactions = await Transaction.find({ account: req.account.id });
-    res.json(transactions);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-// @desc    Create new transaction (credit or debit)
-// @route   POST /api/transactions
-// @access  Private
+// Create a new transaction
 const createTransaction = async (req, res) => {
-  const { account, amount, type } = req.body;
+  const { accountId, amount, type } = req.body;
 
-  // Validate type
-  if (!['credit', 'debit'].includes(type)) {
-    return res.status(400).json({ message: 'Invalid transaction type' });
+  const account = await Account.findById(accountId);
+
+  if (!account) {
+    return res.status(404).json({ message: 'Account not found' });
   }
 
-  try {
-    // Fetch account
-    const accountData = await Account.findById(account);
-    if (!accountData || accountData.user.toString() !== req.user.id) {
-      return res.status(404).json({ message: 'Account not found' });
-    }
-
-    // Adjust account balance
-    let newBalance = accountData.balance;
-    if (type === 'credit') {
-      newBalance += amount;
-    } else if (type === 'debit') {
-      if (newBalance < amount) {
-        return res.status(400).json({ message: 'Insufficient balance' });
-      }
-      newBalance -= amount;
-    }
-
-    // Save updated account balance
-    accountData.balance = newBalance;
-    await accountData.save();
-
-    // Create transaction record
-    const transaction = new Transaction({
-      account: accountData.id,
-      amount,
-      type,
-    });
-
-    await transaction.save();
-    res.status(201).json(transaction);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+  if (type === 'debit' && account.balance < amount) {
+    return res.status(400).json({ message: 'Insufficient balance' });
   }
+
+  const transaction = await Transaction.create({
+    account: accountId,
+    amount,
+    type,
+  });
+
+  // Update account balance
+  account.balance = type === 'credit' ? account.balance + amount : account.balance - amount;
+  await account.save();
+
+  res.status(201).json(transaction);
 };
 
-module.exports = { getTransactions, createTransaction };
+// Get all transactions for an account
+const getTransactions = async (req, res) => {
+  const { accountId } = req.query;
+
+  const transactions = await Transaction.find({ account: accountId });
+  res.json(transactions);
+};
+
+module.exports = {
+  createTransaction,
+  getTransactions,
+};
